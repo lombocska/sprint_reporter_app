@@ -1,16 +1,27 @@
 {% extends "layout.html" %}
+
 {% block title %}
   {% if request.endpoint == 'public_timeline' %}
     Public Timeline
+
   {% elif request.endpoint == 'user_timeline' %}
     {{ profile_user.username }}'s Timeline
+
+  {% elif request.endpoint == 'sprint_backlog' %}
+    My Sprint-Backlog <br>
+    User Story Manager - Add New Story
+
   {% else %}
     My Timeline
   {% endif %}
 {% endblock %}
+
+
 {% block body %}
   <h2>{{ self.title() }}</h2>
+
   {% if g.user %}
+
     {% if request.endpoint == 'user_timeline' %}
       <div class="followstatus">
       {% if g.user.user_id == profile_user.user_id %}
@@ -25,25 +36,101 @@
           }}">Follow user</a>.
       {% endif %}
       </div>
+
+
     {% elif request.endpoint == 'timeline' %}
       <div class="twitbox">
         <h3>What's on your mind {{ g.user.username }}?</h3>
         <form action="{{ url_for('add_message') }}" method="post">
-          <p><input type="text" name="text" size="60"><!--
-          --><input type="submit" value="Share">
+          <p><input type="text" name="text" size="60">
+            <input type="submit" value="Share">
         </form>
       </div>
+
+      <ul class="messages">
+      {% for message in messages %}
+      <li><img src="{{ message.email|gravatar(size=48) }}"><p>
+        <strong><a href="{{ url_for('user_timeline', username=message.username)
+        }}">{{ message.username }}</a></strong>
+        {{ message.text }}
+        <small>&mdash; {{ message.pub_date|datetimeformat }}</small>
+      {% else %}
+      <li><em>There's no message so far.</em>
+      {% endfor %}
+      </ul>
+
+
+
+    {% elif request.endpoint == 'sprint_backlog' %}
+        <div class="sprintbox">
+          <form action="{{ url_for('add_sprint') }}" method="post">
+
+            <fieldset>
+              <legend>Story Title</legend>
+              <input type="text" placeholder="Add a Story Title" name="story_title" size ="78">
+
+
+              <legend>User Story</legend>
+              <input type="text"  placeholder="Write the User Story" name="user_story" size ="78">
+
+
+              <legend>Acceptance Criteria</legend>
+              <input type="text"  placeholder="Write Acceptance Criteria(s)" name="acceptance_criteria" size ="78">
+
+
+                <label for="value">Business Value</label>
+                    <input type="number" name="business_value" min="100" max ="1500" step="100">
+
+
+                <label for="value">Estimation Time</label>
+                    <input type="number" name="estimation_time" min="0,5" max ="40" step="0,5"><br>
+
+
+                <legend>Status</legend>
+                    <select type="text" name="backlog_status">
+                      <option value="planning">Planning</option>
+                      <option value="todo">To Do</option>
+                      <option value="inprogress">In progress</option>
+                      <option value="review">Review</option>
+                      <option value="done">Done</option>
+                    </select>
+            </fieldset>
+
+                <br><input type="submit" value="Share">
+          </form>
+        </div>
+
+        <ul class="sprints">
+        {% for sprint in sprints %}
+          <li><img src="{{ sprint.email|gravatar(size=48) }}"><p>
+          <strong><a href="{{ url_for('user_timeline', username=sprint.username)
+        }}">{{ sprint.username }}</a></strong>
+        <table >
+            <tr>
+              <th>Story Title</th>
+              <th>User Story</th>
+              <th>Acceptance Criteria</th>
+              <th>Business Value</th>
+              <th>Estimation Time</th>
+              <th>Backlog Status</th>
+            </tr>
+            <tr>
+                <td> {{ sprint.story_title }} </td>
+                <td> {{ sprint.user_story }} </td>
+                <td> {{ sprint.acceptance_criteria }} </td>
+                <td> {{ sprint.business_value}} </td>
+                <td> {{ sprint.estimation_time}} </td>
+                <td> {{ sprint.backlog_status}} </td>
+            </tr>
+          </table>
+          <small>&mdash; {{ sprint.pub_date|datetimeformat }}</small>
+        {% else %}
+          <li><em>There's no sprint so far.</em>
+        {% endfor %}
+        </ul>
+
     {% endif %}
+
   {% endif %}
-  <ul class="messages">
-  {% for message in messages %}
-    <li><img src="{{ message.email|gravatar(size=48) }}"><p>
-      <strong><a href="{{ url_for('user_timeline', username=message.username)
-      }}">{{ message.username }}</a></strong>
-      {{ message.text }}
-      <small>&mdash; {{ message.pub_date|datetimeformat }}</small>
-  {% else %}
-    <li><em>There's no message so far.</em>
-  {% endfor %}
-  </ul>
+
 {% endblock %}

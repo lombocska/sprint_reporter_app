@@ -102,7 +102,21 @@ def timeline():
             user.user_id = ? or
             user.user_id in (select whom_id from follower
                                     where who_id = ?))
-        order by message.pub_date desc limit ?''', [session['user_id'], session['user_id'], PER_PAGE]))
+        order by message.pub_date desc limit ?''',
+        [session['user_id'], session['user_id'], PER_PAGE]))
+
+
+@app.route('/mysprint')
+def sprint_backlog():
+    """Displays my latest backlog."""
+    return render_template('timeline.html', sprints=query_db('''
+        select sprint.*, user.* from sprint, user
+        where sprint.author_id = user.user_id and (
+            user.user_id = ? or
+            user.user_id in (select whom_id from follower
+                                    where who_id = ?))
+        order by sprint.pub_date desc limit ?''',
+        [session['user_id'], session['user_id'], PER_PAGE]))
 
 
 @app.route('/public')
@@ -144,7 +158,8 @@ def follow_user(username):
     if whom_id is None:
         abort(404)
     db = get_db()
-    db.execute('insert into follower (who_id, whom_id) values (?, ?)', [session['user_id'], whom_id])
+    db.execute('insert into follower (who_id, whom_id) values (?, ?)',
+              [session['user_id'], whom_id])
     db.commit()
     flash('You are now following "%s"' % username)
     return redirect(url_for('user_timeline', username=username))
@@ -159,7 +174,8 @@ def unfollow_user(username):
     if whom_id is None:
         abort(404)
     db = get_db()
-    db.execute('delete from follower where who_id=? and whom_id=?', [session['user_id'], whom_id])
+    db.execute('delete from follower where who_id=? and whom_id=?',
+              [session['user_id'], whom_id])
     db.commit()
     flash('You are no longer following "%s"' % username)
     return redirect(url_for('user_timeline', username=username))
@@ -178,6 +194,20 @@ def add_message():
         db.commit()
         flash('Your message was recorded')
     return redirect(url_for('timeline'))
+
+
+@app.route('/add_sprint', methods=['POST'])
+def add_sprint():
+    """Registers a new sprint for the user."""
+    if 'user_id' not in session:
+        abort(401)
+    if request.form['story_title']:
+        db = get_db()
+        db.execute('''insert into sprint (author_id, story_title, user_story, acceptance_criteria, business_value, estimation_time, backlog_status, pub_date)
+          values (?, ?, ?, ?, ?, ?, ?, ?)''', (session['user_id'], request.form['story_title'], request.form['user_story'], request.form['acceptance_criteria'], request.form['business_value'], request.form['estimation_time'],request.form['backlog_status'], int(time.time())))
+        db.commit()
+        flash('Your sprint was recorded')
+    return redirect(url_for('sprint_backlog'))
 
 
 @app.route('/login', methods=['GET', 'POST'])
